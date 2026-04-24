@@ -174,36 +174,36 @@ HTML = r"""<!doctype html>
 <title>scp-for-me</title>
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; font-size: 14px;
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; font-size: 16px;
          color: #222; background: #f5f5f5; display: flex; flex-direction: column; height: 100vh; }
   header { padding: 8px 14px; background: #2d3748; color: white; display: flex; align-items: center; gap: 12px; }
-  header h1 { margin: 0; font-size: 15px; font-weight: 500; }
-  header .hint { font-size: 12px; color: #a0aec0; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 500; }
+  header .hint { font-size: 14px; color: #a0aec0; }
   .panels { display: flex; flex: 1; overflow: hidden; gap: 1px; background: #cbd5e0; }
   .panel { flex: 1; display: flex; flex-direction: column; background: white; overflow: hidden; min-width: 0; }
-  .panel h2 { margin: 0; padding: 6px 10px; font-size: 13px; font-weight: 600;
+  .panel h2 { margin: 0; padding: 6px 10px; font-size: 15px; font-weight: 600;
               background: #edf2f7; border-bottom: 1px solid #cbd5e0; display: flex; gap: 8px; align-items: baseline; }
-  .panel h2 .addr { color: #718096; font-weight: 400; font-family: monospace; font-size: 12px; }
+  .panel h2 .addr { color: #718096; font-weight: 400; font-family: monospace; font-size: 14px; }
   .pathbar, .toolbar { display: flex; padding: 6px; gap: 4px; border-bottom: 1px solid #e2e8f0; align-items: center; }
   .toolbar { background: #fafbfc; }
   .pathbar button, .toolbar button {
     padding: 2px 10px; cursor: pointer; background: white;
-    border: 1px solid #cbd5e0; border-radius: 3px; font-size: 13px;
+    border: 1px solid #cbd5e0; border-radius: 3px; font-size: 15px;
   }
   .pathbar button:hover, .toolbar button:hover { background: #edf2f7; }
   .pathbar button:disabled, .toolbar button:disabled { opacity: 0.4; cursor: default; }
   .toolbar button.send { background: #4299e1; color: white; border-color: #3182ce; font-weight: 500; }
   .toolbar button.send:hover:not(:disabled) { background: #3182ce; }
   .toolbar button.send:disabled { background: #cbd5e0; color: #718096; border-color: #cbd5e0; }
-  .pathbar input { flex: 1; padding: 3px 6px; font-family: monospace; font-size: 12px;
+  .pathbar input { flex: 1; padding: 3px 6px; font-family: monospace; font-size: 14px;
                    border: 1px solid #cbd5e0; border-radius: 3px; min-width: 0; }
-  .pathbar .readonly-path { flex: 1; padding: 3px 6px; font-family: monospace; font-size: 12px;
+  .pathbar .readonly-path { flex: 1; padding: 3px 6px; font-family: monospace; font-size: 14px;
                             background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 3px;
                             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .toolbar .sel-count { font-size: 12px; color: #718096; flex: 1; }
-  .toolbar label { display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; user-select: none; }
+  .toolbar .sel-count { font-size: 14px; color: #718096; flex: 1; }
+  .toolbar label { display: flex; align-items: center; gap: 5px; font-size: 14px; cursor: pointer; user-select: none; }
 
-  .list { flex: 1; overflow-y: auto; font-family: monospace; font-size: 12px; position: relative; }
+  .list { flex: 1; overflow-y: auto; font-family: monospace; font-size: 14px; position: relative; }
   .list.dragover { background: #ebf8ff; outline: 2px dashed #4299e1; outline-offset: -6px; }
   .row { display: flex; padding: 3px 10px; cursor: pointer; user-select: none; gap: 8px; align-items: center; }
   .row:hover { background: #ebf8ff; }
@@ -217,12 +217,12 @@ HTML = r"""<!doctype html>
 
   .empty { padding: 24px 16px; color: #718096; text-align: center; font-family: -apple-system, system-ui, sans-serif; }
   .empty button { margin-top: 8px; padding: 6px 14px; cursor: pointer; background: #4299e1; color: white;
-                  border: none; border-radius: 3px; font-size: 13px; }
+                  border: none; border-radius: 3px; font-size: 15px; }
   .empty button:hover { background: #3182ce; }
 
   .progress-area { background: #f7fafc; border-top: 1px solid #cbd5e0; padding: 8px 14px; }
   .progress-area[hidden] { display: none; }
-  .progress-row { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-bottom: 4px; }
+  .progress-row { display: flex; align-items: center; gap: 10px; font-size: 14px; margin-bottom: 4px; }
   .progress-row:last-child { margin-bottom: 0; }
   .progress-row .label { font-weight: 600; min-width: 78px; }
   .progress-row .text { flex: 1; font-family: monospace; color: #4a5568;
@@ -231,11 +231,11 @@ HTML = r"""<!doctype html>
   .progress-bar { flex: 2; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
   .progress-bar .fill { height: 100%; background: #4299e1; width: 0%; transition: width 0.1s linear; }
   .progress-area button.cancel { padding: 2px 10px; background: white; border: 1px solid #fc8181;
-                                 color: #c53030; cursor: pointer; border-radius: 3px; font-size: 12px; }
+                                 color: #c53030; cursor: pointer; border-radius: 3px; font-size: 14px; }
   .progress-area button.cancel:hover { background: #fff5f5; }
 
   .status { padding: 6px 12px; background: #1a202c; color: #cbd5e0;
-            font-family: monospace; font-size: 12px; border-top: 1px solid #2d3748;
+            font-family: monospace; font-size: 14px; border-top: 1px solid #2d3748;
             max-height: 140px; overflow-y: auto; }
   .status div { padding: 1px 0; }
   .status .err { color: #fc8181; }
@@ -244,12 +244,12 @@ HTML = r"""<!doctype html>
   dialog { border: 1px solid #cbd5e0; border-radius: 6px; padding: 0; min-width: 380px; max-width: 540px;
            box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
   dialog::backdrop { background: rgba(0,0,0,0.35); }
-  dialog .dlg-head { padding: 12px 18px; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px; }
-  dialog .dlg-body { padding: 14px 18px; font-size: 13px; color: #2d3748; word-break: break-word; }
+  dialog .dlg-head { padding: 12px 18px; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 16px; }
+  dialog .dlg-body { padding: 14px 18px; font-size: 15px; color: #2d3748; word-break: break-word; }
   dialog .dlg-buttons { display: flex; gap: 6px; justify-content: flex-end;
                         padding: 10px 14px; border-top: 1px solid #e2e8f0; background: #f7fafc; flex-wrap: wrap; }
   dialog .dlg-buttons button { padding: 5px 12px; border: 1px solid #cbd5e0; background: white;
-                               border-radius: 3px; cursor: pointer; font-size: 13px; }
+                               border-radius: 3px; cursor: pointer; font-size: 15px; }
   dialog .dlg-buttons button:hover { background: #edf2f7; }
   dialog .dlg-buttons button.primary { background: #4299e1; color: white; border-color: #3182ce; }
   dialog .dlg-buttons button.primary:hover { background: #3182ce; }
@@ -261,7 +261,7 @@ HTML = r"""<!doctype html>
 <header>
   <h1>scp-for-me</h1>
   <span class="hint">click a file/folder to transfer it • or check boxes and use → / ← buttons for multi-select</span>
-  <label style="margin-left:auto; display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; user-select:none;">
+  <label style="margin-left:auto; display:flex; align-items:center; gap:5px; font-size:14px; cursor:pointer; user-select:none;">
     <input type="checkbox" id="show-hidden" onchange="toggleHidden(this.checked)"> show hidden
   </label>
 </header>
@@ -274,6 +274,8 @@ HTML = r"""<!doctype html>
       <button onclick="serverUp()" title="parent directory">↑</button>
       <input id="server-path" onkeydown="if(event.key==='Enter')serverLoad(this.value)">
       <button onclick="serverLoad(document.getElementById('server-path').value)" title="reload">⟳</button>
+      <button onclick="serverLoad('/run/media/opc/spielraum/ijr-code')"
+              title="/run/media/opc/spielraum/ijr-code">📁 ijr-code</button>
     </div>
     <div class="toolbar">
       <label><input type="checkbox" id="server-all" onchange="serverSelectAll(this.checked)"> all</label>
