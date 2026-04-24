@@ -261,6 +261,9 @@ HTML = r"""<!doctype html>
 <header>
   <h1>scp-for-me</h1>
   <span class="hint">click a file/folder to transfer it • or check boxes and use → / ← buttons for multi-select</span>
+  <label style="margin-left:auto; display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; user-select:none;">
+    <input type="checkbox" id="show-hidden" onchange="toggleHidden(this.checked)"> show hidden
+  </label>
 </header>
 
 <div class="panels">
@@ -357,6 +360,22 @@ function fmtSize(n) {
 }
 function sum(arr, f) { let s = 0; for (const x of arr) s += f(x); return s; }
 
+// Hidden-file toggle (applies to both panels). Names starting with "." are hidden.
+let showHidden = localStorage.getItem("scp-for-me:showHidden") === "1";
+function isHidden(name) { return name.startsWith("."); }
+function isVisible(name) { return showHidden || !isHidden(name); }
+function toggleHidden(on) {
+  showHidden = on;
+  localStorage.setItem("scp-for-me:showHidden", on ? "1" : "0");
+  // Drop any now-hidden entries from selections to match what the user sees.
+  if (!on) {
+    for (const n of [...server.sel]) if (isHidden(n)) server.sel.delete(n);
+    for (const n of [...laptop.sel]) if (isHidden(n)) laptop.sel.delete(n);
+  }
+  renderServer();
+  laptopRender();
+}
+
 // ======================================================================
 // dialog helper (uses native <dialog>)
 // ======================================================================
@@ -413,6 +432,7 @@ function renderServer() {
   up.onclick = serverUp;
   list.appendChild(up);
   for (const e of server.entries) {
+    if (!isVisible(e.name)) continue;
     const row = document.createElement("div");
     row.className = "row" + (e.is_dir ? " dir" : "") + (server.sel.has(e.name) ? " selected" : "");
     const icon = e.is_dir ? "📁" : "📄";
@@ -437,14 +457,16 @@ function renderServer() {
 }
 function updateServerSelUi() {
   const n = server.sel.size;
+  const visibleCount = server.entries.filter(e => isVisible(e.name)).length;
   document.getElementById("server-count").textContent =
     n === 0 ? "0 selected" : `${n} selected`;
   document.getElementById("server-send").disabled = n === 0 || queueActive;
   document.getElementById("server-all").checked =
-    n > 0 && n === server.entries.length;
+    n > 0 && n === visibleCount;
 }
 function serverSelectAll(checked) {
-  server.sel = new Set(checked ? server.entries.map(e => e.name) : []);
+  const visible = server.entries.filter(e => isVisible(e.name));
+  server.sel = new Set(checked ? visible.map(e => e.name) : []);
   renderServer();
 }
 function sendServerSelection() {
@@ -554,8 +576,8 @@ async function laptopRender() {
     ? a.name.toLowerCase().localeCompare(b.name.toLowerCase())
     : (a.is_dir ? -1 : 1));
   laptop.entries = items;
-  laptop.sel = new Set();
-  document.getElementById("laptop-all").checked = false;
+  // Drop selected names that no longer exist in this directory listing.
+  for (const n of [...laptop.sel]) if (!items.some(it => it.name === n)) laptop.sel.delete(n);
 
   const upRow = document.createElement("div");
   upRow.className = "row dir parent";
@@ -563,11 +585,12 @@ async function laptopRender() {
   upRow.onclick = laptopUp;
   list.appendChild(upRow);
   for (const e of items) {
+    if (!isVisible(e.name)) continue;
     const row = document.createElement("div");
-    row.className = "row" + (e.is_dir ? " dir" : "");
+    row.className = "row" + (e.is_dir ? " dir" : "") + (laptop.sel.has(e.name) ? " selected" : "");
     const icon = e.is_dir ? "📁" : "📄";
     row.innerHTML = `
-      <input type="checkbox" class="sel">
+      <input type="checkbox" class="sel" ${laptop.sel.has(e.name) ? "checked" : ""}>
       <span class="name">${icon} ${esc(e.name)}</span>
       <span class="size">${e.size_h || ""}</span>`;
     const cb = row.querySelector("input.sel");
@@ -580,6 +603,7 @@ async function laptopRender() {
     row.onclick = async () => {
       if (e.is_dir) {
         laptop.stack.push({ handle: e.handle, name: e.name });
+        laptop.sel = new Set();
         await laptopRender();
       } else {
         await transfer("laptop->server", [e]);
@@ -591,27 +615,30 @@ async function laptopRender() {
 }
 function updateLaptopSelUi() {
   const n = laptop.sel.size;
+  const visibleCount = laptop.entries.filter(e => isVisible(e.name)).length;
   document.getElementById("laptop-count").textContent =
     n === 0 ? "0 selected" : `${n} selected`;
   document.getElementById("laptop-send").disabled =
     n === 0 || queueActive || !server.path;
   document.getElementById("laptop-all").checked =
-    n > 0 && n === laptop.entries.length;
+    n > 0 && n === visibleCount;
 }
 function laptopSelectAll(checked) {
-  laptop.sel = new Set(checked ? laptop.entries.map(e => e.name) : []);
-  // re-render minus re-enumerating: easier to just update checkboxes in place
+  const visible = laptop.entries.filter(e => isVisible(e.name));
+  laptop.sel = new Set(checked ? visible.map(e => e.name) : []);
   const rows = document.querySelectorAll("#laptop-list .row:not(.parent)");
-  rows.forEach((row, i) => {
-    const cb = row.querySelector("input.sel");
-    cb.checked = checked;
-    row.classList.toggle("selected", checked);
+  rows.forEach(row => {
+    const name = row.querySelector(".name").textContent.trim().replace(/^📁 |^📄 /, "");
+    const sel = laptop.sel.has(name);
+    row.querySelector("input.sel").checked = sel;
+    row.classList.toggle("selected", sel);
   });
   updateLaptopSelUi();
 }
 function laptopUp() {
   if (laptop.stack.length > 1) {
     laptop.stack.pop();
+    laptop.sel = new Set();
     laptopRender();
   }
 }
@@ -995,6 +1022,7 @@ async function onDropToServer(ev) {
 // ======================================================================
 // boot
 // ======================================================================
+document.getElementById("show-hidden").checked = showHidden;
 log(hasFSAPI
   ? "ready. check boxes + use → / ← to transfer multiple items. folders supported."
   : "ready. Firefox/Safari has no live laptop browser — use 📁 open… to upload, drag-drop to server panel, or click server files to download.");
