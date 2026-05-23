@@ -274,8 +274,8 @@ HTML = r"""<!doctype html>
       <button onclick="serverUp()" title="parent directory">↑</button>
       <input id="server-path" onkeydown="if(event.key==='Enter')serverLoad(this.value)">
       <button onclick="serverLoad(document.getElementById('server-path').value)" title="reload">⟳</button>
-      <button onclick="serverLoad('/run/media/opc/spielraum/ijr-code')"
-              title="/run/media/opc/spielraum/ijr-code">📁 ijr-code</button>
+      <button onclick="serverLoad('/mnt/spielraum/ijr-code')"
+              title="/mnt/spielraum/ijr-code">📁 ijr-code</button>
     </div>
     <div class="toolbar">
       <label><input type="checkbox" id="server-all" onchange="serverSelectAll(this.checked)"> all</label>
