@@ -6,7 +6,9 @@ laptop browser:
 
     ssh -L 5555:localhost:5555 user@this-machine
 """
+import getpass
 import os
+import socket
 from pathlib import Path
 
 from flask import (
@@ -21,6 +23,7 @@ from flask import (
 app = Flask(__name__)
 LISTEN_PORT = int(os.environ.get("PORT", "5555"))
 app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_UPLOAD_GB", "64")) * 1024**3
+SERVER_LABEL = f"{getpass.getuser()}@{socket.gethostname()}"
 
 
 def fmt_size(n):
@@ -43,7 +46,7 @@ def sanitize_relpath(rel):
 
 @app.route("/")
 def index():
-    return render_template_string(HTML)
+    return render_template_string(HTML, server_label=SERVER_LABEL)
 
 
 @app.route("/api/list")
@@ -269,13 +272,13 @@ HTML = r"""<!doctype html>
 <div class="panels">
   <!-- SERVER (left) -->
   <div class="panel">
-    <h2>Server <span class="addr">this machine</span></h2>
+    <h2>Server <span class="addr">{{ server_label }}</span></h2>
     <div class="pathbar">
       <button onclick="serverUp()" title="parent directory">↑</button>
       <input id="server-path" onkeydown="if(event.key==='Enter')serverLoad(this.value)">
       <button onclick="serverLoad(document.getElementById('server-path').value)" title="reload">⟳</button>
-      <button onclick="serverLoad('/mnt/spielraum/ijr-code')"
-              title="/mnt/spielraum/ijr-code">📁 ijr-code</button>
+      <button onclick="serverLoad('/mnt/spielraum')"
+              title="/mnt/spielraum">📁 spielraum</button>
     </div>
     <div class="toolbar">
       <label><input type="checkbox" id="server-all" onchange="serverSelectAll(this.checked)"> all</label>
@@ -290,7 +293,7 @@ HTML = r"""<!doctype html>
 
   <!-- LAPTOP (right) -->
   <div class="panel">
-    <h2>Your machine <span class="addr" id="laptop-mode">(no folder selected)</span></h2>
+    <h2>Your machine <span class="addr" id="laptop-host">…</span> <span class="addr" id="laptop-mode">(no folder selected)</span></h2>
     <div class="pathbar">
       <button id="laptop-up-btn" onclick="laptopUp()" title="parent directory" disabled>↑</button>
       <span class="readonly-path" id="laptop-path">—</span>
@@ -364,6 +367,47 @@ function sum(arr, f) { let s = 0; for (const x of arr) s += f(x); return s; }
 
 // Hidden-file toggle (applies to both panels). Names starting with "." are hidden.
 let showHidden = localStorage.getItem("scp-for-me:showHidden") === "1";
+// Best-effort "user@host"-style label for the laptop side. Browsers don't
+// expose the OS username or hostname (privacy), so we synthesize the
+// richest identifier we can: browser@os[-version][ model][ arch].
+async function laptopHostLabel() {
+  const ua = navigator.userAgent || "";
+  let browser = "browser";
+  if (/Edg\//.test(ua)) browser = "Edge";
+  else if (/OPR\//.test(ua)) browser = "Opera";
+  else if (/Firefox\//.test(ua)) browser = "Firefox";
+  else if (/Chrome\//.test(ua)) browser = "Chrome";
+  else if (/Safari\//.test(ua)) browser = "Safari";
+
+  const uaData = navigator.userAgentData;
+  let os = uaData && uaData.platform;
+  if (!os) {
+    const p = (navigator.platform || "").toLowerCase();
+    if (p.includes("mac") || /Mac OS X/.test(ua)) os = "macOS";
+    else if (p.includes("win") || /Windows/.test(ua)) os = "Windows";
+    else if (/Android/.test(ua)) os = "Android";
+    else if (/iPhone|iPad|iPod/.test(ua)) os = "iOS";
+    else if (p.includes("linux") || /Linux/.test(ua)) os = "Linux";
+    else os = navigator.platform || "unknown";
+  }
+
+  let version = "", model = "", arch = "";
+  if (uaData && uaData.getHighEntropyValues) {
+    try {
+      const hi = await uaData.getHighEntropyValues(
+        ["platformVersion", "model", "architecture"]);
+      version = (hi.platformVersion || "").split(".")[0];
+      model = hi.model || "";
+      arch = hi.architecture || "";
+    } catch {}
+  }
+  let host = os;
+  if (version) host += " " + version;
+  if (model) host += " " + model;
+  if (arch && !model) host += " " + arch;
+  return `${browser}@${host}`;
+}
+
 function isHidden(name) { return name.startsWith("."); }
 function isVisible(name) { return showHidden || !isHidden(name); }
 function toggleHidden(on) {
@@ -532,14 +576,13 @@ async function laptopRender() {
     upBtn.disabled = true;
     laptop.entries = [];
     laptop.sel = new Set();
+    mode.textContent = "";
     if (!hasFSAPI) {
-      mode.textContent = "(click open… to upload files — live browsing needs Chrome/Edge)";
       list.innerHTML = `<div class="empty">
         Firefox/Safari can't enumerate local folders.<br>
         Click <b>📁 open…</b> to pick files to upload, or drag &amp; drop files onto the server panel.
       </div>`;
     } else {
-      mode.textContent = "(no folder selected)";
       list.innerHTML = `<div class="empty">
         Pick a folder on your laptop to browse it here.<br>
         <button onclick="laptopPick()">📁 open folder…</button>
@@ -1025,6 +1068,7 @@ async function onDropToServer(ev) {
 // boot
 // ======================================================================
 document.getElementById("show-hidden").checked = showHidden;
+laptopHostLabel().then(s => { document.getElementById("laptop-host").textContent = s; });
 log(hasFSAPI
   ? "ready. check boxes + use → / ← to transfer multiple items. folders supported."
   : "ready. Firefox/Safari has no live laptop browser — use 📁 open… to upload, drag-drop to server panel, or click server files to download.");
